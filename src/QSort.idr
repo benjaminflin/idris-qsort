@@ -1,4 +1,4 @@
-module Main
+module QSort
 
 import Data.So
 import Data.List
@@ -6,6 +6,7 @@ import Decidable.Order
 import Data.List.Elem
 import Data.List.Quantifiers
 import Data.Nat
+import Data.Nat.Order
 import Data.Nat.Views
 
 %default total
@@ -69,15 +70,6 @@ permutationConcatReverse px =
     let p2 = permutationComm {xs=xs} {ys=zs} in 
     let p3 = PermTrans (permutationSym p1) p2 in 
     PermTrans (permutationSym p3) (permutationComm)
-
-permutationAppendNil : {xs, xs', ys: List a} -> Permutation xs xs' -> Permutation xs (xs' ++ ys) -> ys = []
-permutationAppendNil px = believe_me 
-
-permutationConcatLemma : {xs, xs', ys, ys': List a} -> Permutation xs xs' -> Permutation (xs ++ ys) (xs ++ ys') -> Permutation (xs ++ ys) (xs' ++ ys')
-permutationConcatLemma px pxy = 
-    case ys of 
-        [] => rewrite appendNilRightNeutral xs in ?pcl_5
-        (z::zs) => ?pcl_6
 
 permutationConcatTrans : {xs, xs', ys, ys' : List a} -> 
                          Permutation xs xs' -> Permutation ys ys' -> Permutation (xs ++ ys) (xs' ++ ys')
@@ -146,6 +138,10 @@ sortingLemma (NonEmpty neXs) (NonEmpty neYs) inOrder =
             NonEmpty (Many pfLte rst')
 
 
+data SortedList : (xs: List a) -> Type where
+    MkSortedList : (ws: List a) -> (0 _ : Sorted lte' ws) -> (0 _ : Permutation xs ws) -> SortedList xs 
+
+
 quicksort : (o: Ordered a lte') => (xs: List a) -> (ws: List a ** (Sorted lte' ws, Permutation xs ws))
 quicksort [] = ([] ** (Empty, PermNil))
 quicksort (p :: xs) = 
@@ -169,7 +165,3 @@ quicksort (p :: xs) =
             let lastLhs = lastAll lteLhs in
             let sortL = sortingLemma stdLhs consPRhs lastLhs in
             (lhs ++ (p :: rhs) ** (sortL, permFinal))
-
-
-main : IO ()
-main = print "hello" 
