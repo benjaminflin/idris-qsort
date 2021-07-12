@@ -11,24 +11,30 @@ import Data.Nat.Views
 
 %default total
 
+public export
 data NonEmptySorted : (lte': a -> a -> Type) -> List a -> Type where
     One : NonEmptySorted lte' [x]
     Many : {x: a} -> (lte' x y) -> NonEmptySorted lte' (y :: xs) -> NonEmptySorted lte' (x :: y :: xs)
 
+
+public export
 data Sorted : (lte': a -> a -> Type) -> List a -> Type where
     Empty : Sorted lte' []
     NonEmpty : NonEmptySorted lte' v -> Sorted lte' v
 
+public export
 data Permutation : (xs: List a) -> (xs': List a) -> Type where 
     PermNil : Permutation [] []  
     PermCons : Permutation xs xs' -> Permutation (x :: xs) (x :: xs')
     PermSwap : Permutation (x :: y :: xs) (y :: x :: xs)
     PermTrans : {ys: List a} -> Permutation xs ys -> Permutation ys zs -> Permutation xs zs  
 
+public export
 permutationRefl : {xs: List a} -> Permutation xs xs
 permutationRefl {xs = []} = PermNil 
 permutationRefl {xs = (x :: xs)} = PermCons permutationRefl {xs = xs}
 
+public export
 permutationSym : Permutation xs ys -> Permutation ys xs
 permutationSym PermNil = PermNil 
 permutationSym (PermCons xs) = PermCons (permutationSym xs) 
@@ -36,12 +42,14 @@ permutationSym PermSwap = PermSwap
 permutationSym (PermTrans x y) = PermTrans (permutationSym y) (permutationSym x)
 
 
+public export
 data Partition : (lte': a -> a -> Type) -> (p: a) -> (xs: List a) -> Type where
     MkPartition : {ys, zs: List a} -> All (\x => lte' x p) ys -> All (\x => lte' p x) zs ->
                   Permutation xs (ys ++ zs) ->
                   Partition lte' p xs
 
 
+public export
 permutationConcat : {xs, xs', zs: List a} -> Permutation xs xs' -> Permutation (xs ++ zs) (xs' ++ zs)
 permutationConcat PermNil = permutationRefl 
 permutationConcat (PermCons xs) = PermCons (permutationConcat xs) 
@@ -52,6 +60,7 @@ permutationConcat (PermTrans p1 p2) =
     PermTrans ih1 ih2
 
 
+public export
 permutationComm : {xs, ys: List a} -> Permutation (xs ++ ys) (ys ++ xs)
 permutationComm {xs = xs} {ys = []} = 
     rewrite appendNilRightNeutral xs in permutationRefl 
@@ -64,6 +73,7 @@ permutationComm {xs = (x :: xs)} {ys = (y :: ys)} =
     let p1 = PermCons $ PermTrans ih3 (PermCons (permutationSym ih1)) in 
     let p2 = PermTrans PermSwap (PermCons ih2) in PermTrans p1 p2
 
+public export
 permutationConcatReverse : {xs, xs', zs: List a} -> Permutation xs xs' -> Permutation (zs ++ xs) (zs ++ xs')
 permutationConcatReverse px = 
     let p1 = permutationConcat px {zs=zs} in 
@@ -71,6 +81,7 @@ permutationConcatReverse px =
     let p3 = PermTrans (permutationSym p1) p2 in 
     PermTrans (permutationSym p3) (permutationComm)
 
+public export
 permutationConcatTrans : {xs, xs', ys, ys' : List a} -> 
                          Permutation xs xs' -> Permutation ys ys' -> Permutation (xs ++ ys) (xs' ++ ys')
 permutationConcatTrans PermNil py = py 
@@ -86,11 +97,13 @@ permutationConcatTrans (PermTrans x y) py =
     let p1 = permutationSym (permutationConcatReverse py) in 
     PermTrans (PermTrans ih1 p1) ih2
 
+public export
 permutationLemma : {x: a} -> {xs, ys, zs: List a} -> Permutation xs (ys ++ zs) -> Permutation (x :: xs) (ys ++ (x :: zs))
 permutationLemma perm = 
     PermTrans (PermCons {x=x} $ PermTrans perm (permutationComm {xs=ys} {ys=zs}))
                 (permutationComm {xs=(x::zs)} {ys=ys})
 
+public export
 partition : (o: Ordered a lte') => (p: a) -> (xs: List a) -> Partition lte' p xs 
 partition p [] = MkPartition [] [] PermNil   
 partition p (x :: xs) = 
@@ -102,6 +115,7 @@ partition p (x :: xs) =
             let (MkPartition allLte allGte perm) = partition @{o} p xs
             in MkPartition allLte (gte::allGte) (permutationLemma perm) 
 
+public export
 permutationAll : All p xs -> Permutation xs ws -> All p ws 
 permutationAll all PermNil = [] 
 permutationAll (x :: xs) (PermCons c) = x :: permutationAll xs c
@@ -110,6 +124,7 @@ permutationAll all (PermTrans a b) =
     permutationAll (permutationAll all a) b
 
 
+public export
 lastAll : {xs: List a} -> {auto pf: NonEmpty xs} -> All p xs -> p (last xs)
 lastAll [] impossible
 lastAll (p :: ps) = 
@@ -117,6 +132,7 @@ lastAll (p :: ps) =
         [] => p
         (q :: qs) => lastAll (q :: qs)
 
+public export
 appendSorted : {xs : List a} -> {pf: NonEmpty xs} -> 
                Sorted lte' xs -> lte' (last xs) p -> Sorted lte' (xs ++ [p])
 appendSorted Empty pfLteLast impossible 
@@ -127,7 +143,8 @@ appendSorted (NonEmpty y) pfLteLast =
             let (NonEmpty ne) = appendSorted (NonEmpty rest) pfLteLast in 
             NonEmpty (Many pfLte ne) 
 
-sortingLemma : {xs: List a} -> {prfXs: NonEmpty xs} -> 
+public export
+sortingLemma : {xs: List a} -> {auto prfXs: NonEmpty xs} -> 
                Sorted lte' xs -> Sorted lte' (z::zs) -> lte' (last xs) z -> Sorted lte' (xs ++ (z::zs))
 sortingLemma Empty sortYs inOrder impossible 
 sortingLemma (NonEmpty neXs) (NonEmpty neYs) inOrder = 
@@ -138,10 +155,12 @@ sortingLemma (NonEmpty neXs) (NonEmpty neYs) inOrder =
             NonEmpty (Many pfLte rst')
 
 
+public export
 data SortedList : (xs: List a) -> Type where
-    MkSortedList : (ws: List a) -> (0 _ : Sorted lte' ws) -> (0 _ : Permutation xs ws) -> SortedList xs 
+    MkSortedList : (ws: List a) -> {0 srtd : Sorted lte' ws} -> {0 perm : Permutation xs ws} -> SortedList xs 
 
 
+public export
 quicksort : (o: Ordered a lte') => (xs: List a) -> (ws: List a ** (Sorted lte' ws, Permutation xs ws))
 quicksort [] = ([] ** (Empty, PermNil))
 quicksort (p :: xs) = 
@@ -165,3 +184,7 @@ quicksort (p :: xs) =
             let lastLhs = lastAll lteLhs in
             let sortL = sortingLemma stdLhs consPRhs lastLhs in
             (lhs ++ (p :: rhs) ** (sortL, permFinal))
+
+public export
+quicksort' : (o: Ordered a lte') => (xs: List a) -> SortedList xs 
+quicksort' xs = let (ws ** (pfSrt, pfPerm)) = quicksort @{o} xs in MkSortedList ws {srtd=pfSrt} {perm=pfPerm}
