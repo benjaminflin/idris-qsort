@@ -16,10 +16,10 @@ depends = contrib
 -- modules =
 
 -- main file (i.e. file to load at REPL)
-main = QSort
+main = QSortTest
 
 -- name of executable
--- executable =
+executable = "out.js"
 opts = "--codegen node"
 sourcedir = "src"
 -- script to run before building

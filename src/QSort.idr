@@ -8,6 +8,7 @@ import Data.List.Quantifiers
 import Data.Nat
 import Data.Nat.Order
 import Data.Nat.Views
+import Data.Vect
 
 %default total
 
@@ -44,8 +45,8 @@ permutationSym (PermTrans x y) = PermTrans (permutationSym y) (permutationSym x)
 
 public export
 data Partition : (lte': a -> a -> Type) -> (p: a) -> (xs: List a) -> Type where
-    MkPartition : {ys, zs: List a} -> All (\x => lte' x p) ys -> All (\x => lte' p x) zs ->
-                  Permutation xs (ys ++ zs) ->
+    MkPartition : {ys, zs: List a} -> (0 _ : All (\x => lte' x p) ys) -> (0 _ : All (\x => lte' p x) zs) ->
+                  (0 _ : Permutation xs (ys ++ zs)) ->
                   Partition lte' p xs
 
 
@@ -82,7 +83,7 @@ permutationConcatReverse px =
     PermTrans (permutationSym p3) (permutationComm)
 
 public export
-permutationConcatTrans : {xs, xs', ys, ys' : List a} -> 
+0 permutationConcatTrans : {xs, xs', ys, ys' : List a} -> 
                          Permutation xs xs' -> Permutation ys ys' -> Permutation (xs ++ ys) (xs' ++ ys')
 permutationConcatTrans PermNil py = py 
 permutationConcatTrans (PermCons px) py = PermCons (permutationConcatTrans px py) 
@@ -98,7 +99,7 @@ permutationConcatTrans (PermTrans x y) py =
     PermTrans (PermTrans ih1 p1) ih2
 
 public export
-permutationLemma : {x: a} -> {xs, ys, zs: List a} -> Permutation xs (ys ++ zs) -> Permutation (x :: xs) (ys ++ (x :: zs))
+0 permutationLemma : {x: a} -> {xs, ys, zs: List a} -> Permutation xs (ys ++ zs) -> Permutation (x :: xs) (ys ++ (x :: zs))
 permutationLemma perm = 
     PermTrans (PermCons {x=x} $ PermTrans perm (permutationComm {xs=ys} {ys=zs}))
                 (permutationComm {xs=(x::zs)} {ys=ys})
@@ -116,16 +117,16 @@ partition p (x :: xs) =
             in MkPartition allLte (gte::allGte) (permutationLemma perm) 
 
 public export
-permutationAll : All p xs -> Permutation xs ws -> All p ws 
+0 permutationAll : All p xs -> Permutation xs ws -> All p ws 
+permutationAll (x :: y :: xs) PermSwap = y :: x :: xs  
 permutationAll all PermNil = [] 
 permutationAll (x :: xs) (PermCons c) = x :: permutationAll xs c
-permutationAll (x :: y :: xs) PermSwap = y :: x :: xs  
 permutationAll all (PermTrans a b) = 
     permutationAll (permutationAll all a) b
 
 
 public export
-lastAll : {xs: List a} -> {auto pf: NonEmpty xs} -> All p xs -> p (last xs)
+0 lastAll : {xs: List a} -> {auto pf: NonEmpty xs} -> All p xs -> p (last xs)
 lastAll [] impossible
 lastAll (p :: ps) = 
     case ps of
@@ -144,7 +145,7 @@ appendSorted (NonEmpty y) pfLteLast =
             NonEmpty (Many pfLte ne) 
 
 public export
-sortingLemma : {xs: List a} -> {auto prfXs: NonEmpty xs} -> 
+0 sortingLemma : {xs: List a} -> {auto prfXs: NonEmpty xs} -> 
                Sorted lte' xs -> Sorted lte' (z::zs) -> lte' (last xs) z -> Sorted lte' (xs ++ (z::zs))
 sortingLemma Empty sortYs inOrder impossible 
 sortingLemma (NonEmpty neXs) (NonEmpty neYs) inOrder = 
@@ -156,20 +157,19 @@ sortingLemma (NonEmpty neXs) (NonEmpty neYs) inOrder =
 
 
 public export
-data SortedList : (xs: List a) -> Type where
-    MkSortedList : (ws: List a) -> {0 srtd : Sorted lte' ws} -> {0 perm : Permutation xs ws} -> SortedList xs 
-
+data SortedList : (lte': a -> a -> Type) -> (xs: List a) -> Type where
+    MkSortedList : (ws: List a) -> (0 srtd : Sorted lte' ws) -> (0 perm : Permutation xs ws) -> SortedList lte' xs 
 
 public export
-quicksort : (o: Ordered a lte') => (xs: List a) -> (ws: List a ** (Sorted lte' ws, Permutation xs ws))
-quicksort [] = ([] ** (Empty, PermNil))
+quicksort : (o: Ordered a lte') => (xs: List a) -> SortedList lte' xs
+quicksort [] = MkSortedList [] Empty PermNil
 quicksort (p :: xs) = 
     let (MkPartition {ys=ys} {zs=zs} ltp gtp perm) = partition @{o} p xs in 
-    let (lhs ** (stdLhs, permLhs)) = quicksort @{o} ys in 
-    let (rhs ** (stdRhs, permRhs)) = quicksort @{o} zs in 
-    let lteLhs : All (\x => lte' x p) lhs = permutationAll ltp permLhs in
-    let gteRhs : All (\x => lte' p x) rhs = permutationAll gtp permRhs in
-    let consPRhs : Sorted lte' (p :: rhs) = 
+    let (MkSortedList lhs stdLhs permLhs) = quicksort @{o} ys in 
+    let (MkSortedList rhs stdRhs permRhs) = quicksort @{o} zs in 
+    let 0 lteLhs : All (\x => lte' x p) lhs = permutationAll ltp permLhs in
+    let 0 gteRhs : All (\x => lte' p x) rhs = permutationAll gtp permRhs in
+    let 0 consPRhs : Sorted lte' (p :: rhs) = 
         case stdRhs of   
             Empty => NonEmpty (One) 
             NonEmpty One => 
@@ -177,14 +177,12 @@ quicksort (p :: xs) =
             NonEmpty (Many pf1 rst) =>
                 let (pfGte :: _) = gteRhs in NonEmpty (Many pfGte (Many pf1 rst))
     in
-    let permFinal = permutationLemma {x=p} (PermTrans perm (permutationConcatTrans permLhs permRhs)) in 
-    case lteLhs of 
-        [] => ((p :: rhs) ** (consPRhs, permFinal))
-        (lte::ltes) => 
-            let lastLhs = lastAll lteLhs in
-            let sortL = sortingLemma stdLhs consPRhs lastLhs in
-            (lhs ++ (p :: rhs) ** (sortL, permFinal))
-
-public export
-quicksort' : (o: Ordered a lte') => (xs: List a) -> SortedList xs 
-quicksort' xs = let (ws ** (pfSrt, pfPerm)) = quicksort @{o} xs in MkSortedList ws {srtd=pfSrt} {perm=pfPerm}
+    let 0 permFinal = permutationLemma {x=p} (PermTrans perm (permutationConcatTrans permLhs permRhs)) in 
+    let 0 srtd = 
+        case lteLhs of 
+            [] => consPRhs
+            (lte::ltes) => 
+                let lastLhs = lastAll lteLhs in
+                sortingLemma {lte'=lte'} stdLhs consPRhs lastLhs
+    in
+    (MkSortedList (lhs ++ (p :: rhs)) srtd permFinal)
