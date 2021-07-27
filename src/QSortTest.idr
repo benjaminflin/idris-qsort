@@ -4,11 +4,23 @@ import QSort
 import Data.Nat
 import Data.List
 import Data.Nat.Order
-import Decidable.Order
+import Data.Int.Order
+import Control.Order
 
-qsort_fast : List Nat -> List Nat
-qsort_fast [] = []
-qsort_fast (p :: xs) = let (lhs, rhs) = partition (<=p) xs in (qsort_fast lhs) ++ (p :: (qsort_fast rhs))
+StronglyConnex Nat LTE where
+    order x y = 
+        case lte x y of 
+            Yes pf => Left pf
+            No pf => Right . lteSuccLeft $ notLTEImpliesGT pf 
+
+StronglyConnex Int LTE where
+    order x y = 
+        case decide_LTE_GT x y of 
+            Left pf => Left pf 
+            Right pf => Right $ inject_LT_LTE pf
 
 main : IO ()
-main = let (MkSortedList sorted _ _) = quicksort {a=Nat} {lte'=LTE} [100..0] in print sorted
+main = do
+    let (MkSortedList sorted _ _) = quicksort {a=Int} {lte'=LTE} [100..0]
+    print sorted
+    putStrLn "\n"

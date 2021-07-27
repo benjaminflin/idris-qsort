@@ -1,0 +1,6 @@
+{
+    "extensions": ["meraymond.idris-vscode"],
+    "build": {
+        "dockerfile": "../Dockerfile"
+    }
+}

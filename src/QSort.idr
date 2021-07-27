@@ -2,7 +2,7 @@ module QSort
 
 import Data.So
 import Data.List
-import Decidable.Order
+import Control.Order
 import Data.List.Elem
 import Data.List.Quantifiers
 import Data.Nat
@@ -105,7 +105,7 @@ permutationLemma perm =
                 (permutationComm {xs=(x::zs)} {ys=ys})
 
 public export
-partition : (o: Ordered a lte') => (p: a) -> (xs: List a) -> Partition lte' p xs 
+partition : (o: StronglyConnex a lte') => (p: a) -> (xs: List a) -> Partition lte' p xs 
 partition p [] = MkPartition [] [] PermNil   
 partition p (x :: xs) = 
     case order @{o} x p of
@@ -161,7 +161,7 @@ data SortedList : (lte': a -> a -> Type) -> (xs: List a) -> Type where
     MkSortedList : (ws: List a) -> (0 srtd : Sorted lte' ws) -> (0 perm : Permutation xs ws) -> SortedList lte' xs 
 
 public export
-quicksort : (o: Ordered a lte') => (xs: List a) -> SortedList lte' xs
+quicksort : (o: StronglyConnex a lte') => (xs: List a) -> SortedList lte' xs
 quicksort [] = MkSortedList [] Empty PermNil
 quicksort (p :: xs) = 
     let (MkPartition {ys=ys} {zs=zs} ltp gtp perm) = partition @{o} p xs in 
